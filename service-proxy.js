@@ -104,8 +104,8 @@ function ServiceDispatchHandler(options) {
      * relaysFor             :: Map<serviceName, List<hostPort>>
      * partialRanges         :: Map<serviceName, PartialRange>
      * exitServices          :: Map<serviceName, lastRefresh>
-     * peersToReap           :: Map<hostPort, lastRefresh>
-     * knownPeers            :: Map<hostPort, lastRefresh>
+     * peersToReap           :: Map<hostPort, Map<serviceName, lastRefresh>>
+     * knownPeers            :: Map<hostPort, Map<serviceName, lastRefresh>>
      * connectedServicePeers :: Map<serviceName, Map<hostPort, lastRefresh>>
      * connectedPeerServices :: Map<hostPort, Map<serviceName, lastRefresh>>
      *
@@ -557,15 +557,15 @@ function getServiceChannel(serviceName, create) {
     return serviceChannel;
 };
 
-ServiceDispatchHandler.prototype.getServicePeer =
-function getServicePeer(serviceName, hostPort) {
+ServiceDispatchHandler.prototype.getOrCreateServicePeer =
+function getOrCreateServicePeer(serviceName, hostPort) {
     var self = this;
     var serviceChannel = self.getOrCreateServiceChannel(serviceName);
-    return self._getServicePeer(serviceChannel, hostPort);
+    return self._getOrCreateServicePeer(serviceChannel, hostPort);
 };
 
-ServiceDispatchHandler.prototype._getServicePeer =
-function _getServicePeer(serviceChannel, hostPort) {
+ServiceDispatchHandler.prototype._getOrCreateServicePeer =
+function _getOrCreateServicePeer(serviceChannel, hostPort) {
     var peer = serviceChannel.peers.get(hostPort);
     if (!peer) {
         peer = serviceChannel.peers.add(hostPort);
@@ -624,7 +624,7 @@ function createServiceChannel(serviceName) {
 
     if (mode === 'forward') {
         for (var i = 0; i < exitNames.length; i++) {
-            self._getServicePeer(serviceChannel, exitNames[i]);
+            self._getOrCreateServicePeer(serviceChannel, exitNames[i]);
         }
     }
 
@@ -666,7 +666,7 @@ function refreshServicePeer(serviceName, hostPort) {
     // Mark known peers, so they are candidates for future reaping
     addIndexEntry(self.knownPeers, hostPort, serviceName, now);
 
-    var peer = self.getServicePeer(serviceName, hostPort);
+    var peer = self.getOrCreateServicePeer(serviceName, hostPort);
     self.ensurePeerConnected(serviceName, peer, 'service peer refresh', now);
 };
 
@@ -793,7 +793,7 @@ function refreshServicePeerPartially(serviceName, hostPort, now) {
         partialRange.addWorker(hostPort, now);
     }
 
-    peer = self._getServicePeer(serviceChannel, hostPort);
+    peer = self._getOrCreateServicePeer(serviceChannel, hostPort);
 
     // Unmark recently seen peers, so they don't get reaped
     deleteIndexEntry(self.peersToReap, hostPort, serviceName);
@@ -931,7 +931,7 @@ function computeAffinityChange(serviceChannel, partialRange, now) {
     };
     for (i = 0; i < partialRange.affineWorkers.length; i++) {
         worker = partialRange.affineWorkers[i];
-        peer = self._getServicePeer(serviceChannel, worker);
+        peer = self._getOrCreateServicePeer(serviceChannel, worker);
         isAffine[worker] = true;
         if (!(connectedPeers && connectedPeers[worker]) || !peer.isConnected('out')) {
             toConnect.push(worker);
@@ -958,11 +958,11 @@ function implementAffinityChange(serviceChannel, toConnect, toDisconnect, now) {
     var peer = null;
     var i;
     for (i = 0; i < toConnect.length; i++) {
-        peer = self._getServicePeer(serviceChannel, toConnect[i]);
+        peer = self._getOrCreateServicePeer(serviceChannel, toConnect[i]);
         self.ensurePeerConnected(serviceName, peer, 'service peer affinity change', now);
     }
     for (i = 0; i < toDisconnect.length; i++) {
-        peer = self._getServicePeer(serviceChannel, toDisconnect[i]);
+        peer = self._getOrCreateServicePeer(serviceChannel, toDisconnect[i]);
         self.ensurePeerDisconnected(serviceName, peer, 'service peer affinity change', now);
     }
 };
@@ -1204,7 +1204,7 @@ function changeToForward(exitNodes, serviceChannel, now) {
     //     ... send rpc to new exit nodes
     var exitNames = Object.keys(exitNodes);
     for (i = 0; i < exitNames.length; i++) {
-        self._getServicePeer(serviceChannel, exitNames[i]);
+        self._getOrCreateServicePeer(serviceChannel, exitNames[i]);
     }
     self.roleTransitionEvent.emit(self, {
         serviceChannel: serviceChannel,
@@ -1234,7 +1234,7 @@ function updateExitNodes(exitNodes, serviceChannel) {
     }
     var exitNames = Object.keys(exitNodes);
     for (i = 0; i < exitNames.length; i++) {
-        self._getServicePeer(serviceChannel, exitNames[i]);
+        self._getOrCreateServicePeer(serviceChannel, exitNames[i]);
     }
 };
 
