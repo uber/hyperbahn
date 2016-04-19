@@ -80,6 +80,7 @@ function DualStatsd(options) {
 DualStatsd.prototype.gauge = function gauge(name, value) {
     var self = this;
 
+    self.globalClient.gauge(name, value);
     self.perServerClient.gauge(name, value);
     self.perWorkerClient.gauge(name, value);
 };
