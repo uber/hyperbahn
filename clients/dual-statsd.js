@@ -88,6 +88,7 @@ DualStatsd.prototype.gauge = function gauge(name, value) {
 DualStatsd.prototype.counter = function counter(name, delta) {
     var self = this;
 
+    self.globalClient.counter(name, delta);
     self.perServerClient.counter(name, delta);
     self.perWorkerClient.counter(name, delta);
 };
@@ -95,6 +96,7 @@ DualStatsd.prototype.counter = function counter(name, delta) {
 DualStatsd.prototype.increment = function increment(name, delta) {
     var self = this;
 
+    self.globalClient.increment(name, delta);
     self.perServerClient.increment(name, delta);
     self.perWorkerClient.increment(name, delta);
 };
@@ -102,6 +104,7 @@ DualStatsd.prototype.increment = function increment(name, delta) {
 DualStatsd.prototype.decrement = function decrement(name, delta) {
     var self = this;
 
+    self.globalClient.decrement(name, delta);
     self.perServerClient.decrement(name, delta);
     self.perWorkerClient.decrement(name, delta);
 };
@@ -109,6 +112,7 @@ DualStatsd.prototype.decrement = function decrement(name, delta) {
 DualStatsd.prototype.timing = function timing(name, time) {
     var self = this;
 
+    self.globalClient.timing(name, time);
     self.perServerClient.timing(name, time);
     self.perWorkerClient.timing(name, time);
 };
@@ -117,6 +121,7 @@ DualStatsd.prototype.immediateGauge =
 function immediateGauge(name, value, cb) {
     var self = this;
 
+    self.globalClient.immediateGauge(name, value, cb);
     self.perServerClient.immediateGauge(name, value, cb);
     self.perWorkerClient.immediateGauge(name, value, noop);
 };
@@ -125,6 +130,7 @@ DualStatsd.prototype.immediateCounter =
 function immediateCounter(name, delta, cb) {
     var self = this;
 
+    self.globalClient.immediateCounter(name, delta, noop);
     self.perServerClient.immediateCounter(name, delta, cb);
     self.perWorkerClient.immediateCounter(name, delta, noop);
 };
@@ -133,6 +139,7 @@ DualStatsd.prototype.immediateIncrement =
 function immediateIncrement(name, delta, cb) {
     var self = this;
 
+    self.globalClient.immediateIncrement(name, delta, noop);
     self.perServerClient.immediateIncrement(name, delta, cb);
     self.perWorkerClient.immediateIncrement(name, delta, noop);
 };
@@ -141,6 +148,7 @@ DualStatsd.prototype.immediateDecrement =
 function immediateDecrement(name, delta, cb) {
     var self = this;
 
+    self.globalClient.immediateDecrement(name, delta, noop);
     self.perServerClient.immediateDecrement(name, delta, cb);
     self.perWorkerClient.immediateDecrement(name, delta, noop);
 };
@@ -149,6 +157,7 @@ DualStatsd.prototype.immediateTiming =
 function immediateTiming(name, time, cb) {
     var self = this;
 
+    self.globalClient.immediateTiming(name, time, noop);
     self.perServerClient.immediateTiming(name, time, cb);
     self.perWorkerClient.immediateTiming(name, time, noop);
 };
@@ -156,6 +165,7 @@ function immediateTiming(name, time, cb) {
 DualStatsd.prototype.close = function close() {
     var self = this;
 
+    self.globalClient.close();
     self.perServerClient.close();
     self.perWorkerClient.close();
 };
