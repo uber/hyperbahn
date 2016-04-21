@@ -121,7 +121,7 @@ DualStatsd.prototype.immediateGauge =
 function immediateGauge(name, value, cb) {
     var self = this;
 
-    self.globalClient.immediateGauge(name, value, cb);
+    self.globalClient.immediateGauge(name, value, noop);
     self.perServerClient.immediateGauge(name, value, cb);
     self.perWorkerClient.immediateGauge(name, value, noop);
 };
