@@ -83,11 +83,8 @@ allocCluster.test('tchannel health (stats)', {
             return m.indexOf('inbound.calls.latency.test-client') > -1;
         });
 
-        var perWorker = latencyMsgs[0];
         var allWorker = latencyMsgs[1];
 
-        assert.ok(perWorker.indexOf('autobahn.per-worker') === 0,
-            'expected per-worker stat');
         assert.ok(allWorker.indexOf('autobahn.all-workers') === 0,
             'expected all-workers stat');
 
