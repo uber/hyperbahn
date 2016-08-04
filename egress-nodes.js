@@ -40,7 +40,7 @@ function EgressNodes(options) {
     self.defaultKValue = options.defaultKValue;
 
     self.kValueForServiceName = {};
-    self.iHopsForServiceName = {}; // iHopsForServiceName[serviceName][i] -> i'
+    self.iHopsForServiceName = {}; // iHopsForServiceName[serviceName][i] -> hopped i
 
     // Surface the membership changed event (for use in particular by service
     // proxies).
@@ -101,7 +101,7 @@ EgressNodes.prototype.exitsFor = function exitsFor(serviceName) {
     // Object<hostPort: String, Array<lookupKey: String>>
     var exitNodes = Object.create(null);
     for (var i = 0; i < k; i++) {
-        if (iHops[i]) {
+        if (iHops[i] !== undefined) {
             i = iHops[i];
         }
         var shardKey = serviceName + '~' + i;
@@ -133,7 +133,7 @@ EgressNodes.prototype.isExitFor = function isExitFor(serviceName) {
     var iHops = self.iHopsFor(serviceName);
     var me = self.ringpop.whoami();
     for (var i = 0; i < k; i++) {
-        if (iHops[i]) {
+        if (iHops[i] !== undefined) {
             i = iHops[i];
         }
         var shardKey = serviceName + '~' + i;
