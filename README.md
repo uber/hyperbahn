@@ -72,7 +72,7 @@ You'll now have a two-node Hyperbahn cluster running. In one of the tmux
 windows, you should see the health checks of both nodes. Double check that the
 Hyperbahn cluster is healthy. If not, troubleshoot or report your issue.
 
-To exit, run `tmux kill-session -t hyperbahn` in a seperate shell.
+To exit, run `tmux kill-session -t hyperbahn` in a separate shell.
 
 ## Getting Your App on Hyperbahn
 
