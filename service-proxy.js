@@ -710,17 +710,6 @@ function refreshServicePeer(serviceName, hostPort) {
     self.ensurePeerConnected(serviceName, peer, 'service peer refresh', now);
 };
 
-ServiceDispatchHandler.prototype.deletePeerIndex =
-function deletePeerIndex(serviceName, hostPort) {
-    var self = this;
-
-    if (self.partialAffinityEnabled) {
-        deleteIndexEntry(self.connectedServicePeers, serviceName, hostPort);
-        deleteIndexEntry(self.connectedPeerServices, hostPort, serviceName);
-    }
-    deleteIndexEntry(self.knownPeers, hostPort, serviceName);
-};
-
 ServiceDispatchHandler.prototype.ensurePeerConnected =
 function ensurePeerConnected(serviceName, peer, reason, now) {
     var self = this;
@@ -757,23 +746,52 @@ function connectSinglePeer(hostPort, connectInfo) {
     var self = this;
 
     if (self.peersToPrune[hostPort]) {
+
+        self.logger.info('SKIPPING PEER CONNECTION: PRUNED', self.extendLogInfo({
+            hostPort: hostPort,
+            connectInfo: connectInfo
+        }));
+
         return;
     }
 
     var serviceName = connectInfo.serviceName;
     var serviceChannel = self.getServiceChannel(serviceName);
     if (!serviceChannel) {
+
+        self.logger.info('SKIPPING PEER CONNECTION: NO SERVICE CHANNEL', self.extendLogInfo({
+            hostPort: hostPort,
+            connectInfo: connectInfo
+        }));
+
         return;
     }
 
     var peer = serviceChannel.peers.get(hostPort);
     if (!peer) {
+
+        self.logger.info('SKIPPING PEER CONNECTION: NO PEER', self.extendLogInfo({
+            hostPort: hostPort,
+            connectInfo: connectInfo
+        }));
+
         return;
     }
 
     if (peer.draining) {
+
+        self.logger.info('SKIPPING PEER CONNECTION: PEER DRAINING', self.extendLogInfo({
+            hostPort: hostPort,
+            connectInfo: connectInfo
+        }));
+
         return;
     }
+
+    self.logger.info('CONNECTING TO PEER', self.extendLogInfo({
+        hostPort: hostPort,
+        connectInfo: connectInfo
+    }));
 
     peer.connectTo();
 };
@@ -847,6 +865,12 @@ function addNewPartialPeer(serviceChannel, hostPort, now) {
         partialRange.addWorker(hostPort, now);
     }
 
+    self.logger.info('ADD NEW PARTIAL PEER KNOWS', {
+        serviceName: serviceName,
+        hostPort: hostPort,
+        now: now
+    });
+
     // Unmark recently seen peers, so they don't get reaped
     deleteIndexEntry(self.peersToReap, hostPort, serviceName);
     // Mark known peers, so they are candidates for future reaping
@@ -888,6 +912,12 @@ function freshenPartialPeer(peer, serviceName, now) {
         deleteIndexEntry(self.connectedServicePeers, serviceName, peer.hostPort);
         deleteIndexEntry(self.connectedPeerServices, hostPort, serviceName);
     }
+
+    self.logger.info('FRESHEN PARTIAL PEER KNOWS', {
+        serviceName: serviceName,
+        hostPort: hostPort,
+        now: now
+    });
 
     // Unmark recently seen peers, so they don't get reaped
     deleteIndexEntry(self.peersToReap, peer.hostPort, serviceName);
@@ -951,13 +981,13 @@ function ensurePartialConnections(serviceChannel, serviceName, hostPort, reason,
     if (!result.noop) {
         self.logger.info(
             'implementing affinity change',
-            self.extendLogInfo(partialRange.extendLogInfo({
+            result.extendLogInfo({
                 serviceName: serviceName,
                 reason: reason,
                 causingWorker: hostPort,
                 numToConnect: result.toConnect.length,
                 numToDisconnect: result.toDisconnect.length
-            }))
+            })
         );
         result.implement();
     }
@@ -1407,6 +1437,11 @@ function reapSinglePeer(hostPort, serviceTimes, now) {
     var self = this;
 
     if (self.knownPeers[hostPort]) {
+        self.logger.info('REAP ABORT, WHO KNOWS', {
+            serviceNames: serviceNames,
+            hostPort: hostPort,
+            now: now
+        });
         return;
     }
 
@@ -1441,7 +1476,13 @@ function reapSinglePeer(hostPort, serviceTimes, now) {
         if (serviceChannel) {
             serviceChannel.peers.delete(hostPort);
         }
-        self.deletePeerIndex(serviceName, hostPort);
+
+        if (self.partialAffinityEnabled) {
+            deleteIndexEntry(self.connectedServicePeers, serviceName, hostPort);
+            deleteIndexEntry(self.connectedPeerServices, hostPort, serviceName);
+        }
+        deleteIndexEntry(self.knownPeers, hostPort, serviceName);
+
         var partialRange = self.partialRanges[serviceName];
         if (partialRange) {
             partialRange.removeWorker(hostPort, now);
@@ -1793,7 +1834,15 @@ function audit() {
         worker = this.toDisconnect[i];
         peer = this.serviceChannel.peers.get(worker);
         if (!peer) {
+            // this.proxy.logger.warn(
+            //     'DEBUG workers before',
+            //     {workers: this.partialRange.workers.join(','), worker: worker}
+            // );
             this.removeWorker(worker, 'toDisconnect');
+            // this.proxy.logger.warn(
+            //     'DEBUG workers after',
+            //     {workers: this.partialRange.workers.join(',')}
+            // );
             ++this.staleToDisconnect;
         }
     }
