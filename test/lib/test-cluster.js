@@ -133,7 +133,7 @@ function TestCluster(opts) {
     self.timers = null; // Set whenever a channel is created
 
     self.tchannelJSON = TChannelJSON();
-    self.logger = DebugLogtron('autobahn');
+    self.logger = opts.logger || DebugLogtron('autobahn');
     self.statsd = opts.noStats ? null : NullStatsd(opts.statsdSize || 5);
 
     if (self.opts.whitelist) {
